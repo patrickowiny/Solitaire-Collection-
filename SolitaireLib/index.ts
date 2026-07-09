@@ -1,0 +1,90 @@
+import * as Debug from "~CardLib/Debug";
+import { IGameInfo } from "~CardLib/IGameInfo";
+import { IGamePresenter } from "~CardLib/Presenter/IGamePresenter";
+import Klondike from "~Games/Klondike/GameInfo";
+import KlondikeEx from "~Games/KlondikeEx/GameInfo";
+import Pyramid from "~Games/Pyramid/GameInfo";
+import ClockEngine from "~Games/ClockEngine/GameInfo";
+
+const gameInfos = new Map<string, IGameInfo>();
+gameInfos.set(Klondike.gameId, Klondike);
+gameInfos.set(KlondikeEx.gameId, KlondikeEx);
+gameInfos.set(Pyramid.gameId, Pyramid);
+gameInfos.set(ClockEngine.gameId, ClockEngine);
+
+window.addEventListener("load", () => {
+    const tableHolder = document.getElementById("tableHolder") ?? document.body;
+    const homePage = document.getElementById("homePage")!;
+    const gamePage = document.getElementById("gamePage")!;
+    const gameGrid = document.getElementById("gameGrid")!;
+    const backToGamesLink = document.getElementById("backToGamesLink")!;
+
+    // Populate gameGrid
+    gameInfos.forEach((info) => {
+        const a = document.createElement("a");
+        a.href = `#${info.gameId}`;
+        a.className = "gameCard";
+        
+        const title = document.createElement("h2");
+        title.textContent = info.gameName;
+        a.appendChild(title);
+        
+        gameGrid.appendChild(a);
+    });
+
+    let currentGame: IGamePresenter | undefined;
+
+    const refreshGame = () => {
+        if (currentGame) {
+            currentGame.dispose();
+            currentGame = undefined;
+        }
+
+        const hash = window.location.hash;
+        
+        if (!hash || hash === "#") {
+            homePage.style.display = "block";
+            gamePage.style.display = "none";
+            backToGamesLink.style.display = "none";
+            document.title = "SolitaireLib";
+            return;
+        }
+
+        const qPos = hash.indexOf("?");
+        let params;
+        let gameKey;
+
+        if (qPos >= 0) {
+            params = new URLSearchParams(hash.substr(qPos + 1));
+            gameKey = hash.substr(1, qPos - 1);
+        } else if (hash.includes("&") || hash.includes("?") || hash.includes("=")) {
+            params = new URLSearchParams(hash.substr(1));
+            gameKey = params.get("game");
+        } else {
+            params = new URLSearchParams("");
+            gameKey = hash.substr(1);
+        }
+
+        const gameInfo = gameKey ? gameInfos.get(gameKey.toLowerCase()) : undefined;
+
+        if (!gameInfo) {
+            Debug.error(`Unknown game ${gameKey}.`);
+            homePage.style.display = "block";
+            gamePage.style.display = "none";
+            backToGamesLink.style.display = "none";
+            document.title = "SolitaireLib";
+            return;
+        }
+
+        homePage.style.display = "none";
+        gamePage.style.display = "block";
+        backToGamesLink.style.display = "inline";
+        document.title = `${gameInfo.gameName} — SolitaireLib`;
+
+        currentGame = gameInfo.gamePresenterFactory.createGame(tableHolder, params);
+        currentGame.start();
+    };
+
+    window.addEventListener("hashchange", refreshGame);
+    refreshGame();
+});
