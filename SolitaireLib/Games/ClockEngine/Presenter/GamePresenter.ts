@@ -74,10 +74,10 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         }
 
         if (this.game_.options.engineMode === "grandfather") {
-            const radiusX = sizeX * 2.8;
-            const radiusY = sizeY * 2.5;
+            const radiusX = sizeX * 1.8;
+            const radiusY = sizeY * 1.5;
             
-            const clockCenterY = vExpand * -40;
+            const clockCenterY = vExpand * -15;
             
             // Layout 12 foundations in a circle
             // Index 0 is Hour 1, Index 11 is Hour 12
@@ -94,7 +94,7 @@ export class GamePresenter extends GamePresenterBase<IGame> {
             }
             
             // Layout 8 tableaus below the clock
-            const tableauStartY = clockCenterY + radiusY + sizeY + margin * 2;
+            const tableauStartY = clockCenterY + radiusY + sizeY + margin;
             const xPos = (i: number) => {
                 return (i - 0.5 * (8 - 1)) * (sizeX + margin);
             };
