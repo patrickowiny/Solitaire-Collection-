@@ -7,7 +7,7 @@ import { Rank } from "~CardLib/Model/Rank";
 import { IGame } from "../Model/IGame";
 import { Game } from "../Model/Game";
 
-const scale = 0.3; // shrink the viewport footprint
+const scale = 0.6; // Improved scale to make cards larger and highly readable, while still compact
 const margin = 1 * scale;
 const sizeY = 20 * scale;
 const sizeX = sizeY / 1.555555555555;
@@ -140,8 +140,8 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         };
 
         // Vertically center the 2-row layout elegantly:
-        const topY = vExpand * -10;
-        const bottomY = topY + sizeY + 3;
+        const topY = vExpand * -15;
+        const bottomY = topY + sizeY + 2;
 
         // Row 1 (Top): Foundations 4, 5, 6, 7 aligned horizontally in columns 0, 1, 2, 3
         for (let i = 0; i < this.game_.foundations.length; ++i) {
