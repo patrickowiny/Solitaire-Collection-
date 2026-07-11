@@ -5,13 +5,13 @@ import { PileView } from "~CardLib/View/PileView";
 import { Rect } from "~CardLib/View/Rect";
 import { IGame } from "../Model/IGame";
 
-const scale = 0.6;
-const marginX = 1.5 * scale;
-const marginY = -7 * scale;
-const sizeY = 20 * scale;
-const sizeX = sizeY / 1.555555555555;
+const marginX = 1.5;
+const marginY = -7;
 
 export class GamePresenter extends GamePresenterBase<IGame> {
+    private sizeY = 20;
+    private sizeX = 20 / 1.555555555555;
+
     private readonly foundationPile_: PileView;
     private readonly pyramidPiles_: PileView[][] = [];
     private readonly columnPiles_: PileView[] = [];
@@ -26,6 +26,8 @@ export class GamePresenter extends GamePresenterBase<IGame> {
 
     constructor(game: IGame, rootView: IView) {
         super(game, rootView);
+
+        this.updateSizes_();
 
         // create foundation pile:
         {
@@ -65,22 +67,33 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         this.relayoutAll_();
     }
 
+    private updateSizes_() {
+        const { sizeX, sizeY } = this.calculateCardSize(8, marginX);
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+    }
+
     protected onResize_() {
+        this.updateSizes_();
         this.layoutPiles_();
         this.relayoutAll_();
     }
 
     private layoutPiles_() {
-        const xPosPyramid = (x: number, xMax: number) => (x - 0.5 * (xMax - 1)) * (sizeX + marginX);
-        const yPosPyramid = (y: number) => (y - 3.0) * (sizeY + marginY);
+        const scale = this.sizeY / 20;
+        const scaledMarginX = marginX * scale;
+        const scaledMarginY = marginY * scale;
 
-        const xPosColumns = (colIdx: number) => (colIdx - 0.5 * (8 - 1)) * (sizeX + marginX);
-        const columnsY = yPosPyramid(6) + sizeY + 2.0 * scale;
+        const xPosPyramid = (x: number, xMax: number) => (x - 0.5 * (xMax - 1)) * (this.sizeX + scaledMarginX);
+        const yPosPyramid = (y: number) => (y - 3.0) * (this.sizeY + scaledMarginY);
+
+        const xPosColumns = (colIdx: number) => (colIdx - 0.5 * (8 - 1)) * (this.sizeX + scaledMarginX);
+        const columnsY = yPosPyramid(6) + this.sizeY + 2.0 * scale;
 
         // Foundation pile (placed at top-right, aligned with the rightmost column)
         {
             const pileView = this.foundationPile_;
-            pileView.rect = new Rect(sizeX, sizeY, xPosColumns(7), yPosPyramid(0));
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPosColumns(7), yPosPyramid(0));
         }
 
         // Layout pyramid
@@ -89,7 +102,7 @@ export class GamePresenter extends GamePresenterBase<IGame> {
             for (let x = 0; x < gameRow.length; ++x) {
                 const row = this.pyramidPiles_[y] ?? error();
                 const pileView = row[x] ?? error();
-                pileView.rect = new Rect(sizeX, sizeY, xPosPyramid(x, gameRow.length), yPosPyramid(y));
+                pileView.rect = new Rect(this.sizeX, this.sizeY, xPosPyramid(x, gameRow.length), yPosPyramid(y));
             }
         }
 
@@ -97,7 +110,7 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         for (let i = 0; i < this.game_.columns.length; ++i) {
             const pile = this.game_.columns[i] ?? error();
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(sizeX, sizeY, xPosColumns(i), columnsY);
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPosColumns(i), columnsY);
             pileView.fanYDown = 3.0 * scale;
         }
     }
