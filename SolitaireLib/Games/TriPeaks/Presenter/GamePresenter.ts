@@ -5,11 +5,7 @@ import { PileView } from "~CardLib/View/PileView";
 import { Rect } from "~CardLib/View/Rect";
 import { IGame } from "../Model/IGame";
 
-const scale = 0.6;
-const margin = 1.5 * scale;
-const sizeY = 20 * scale;
-const sizeX = sizeY / 1.555555555555;
-const rowOffset = sizeY * 0.45;
+const margin = 1.5;
 
 function getPeakCoords(index: number): { col: number; row: number } {
     if (index >= 0 && index <= 2) {
@@ -33,6 +29,9 @@ function getPeakCoords(index: number): { col: number; row: number } {
 }
 
 export class GamePresenter extends GamePresenterBase<IGame> {
+    private sizeY = 20;
+    private sizeX = 20 / 1.555555555555;
+
     private readonly stockPile_: PileView;
     private readonly wastePile_: PileView;
     private readonly peakPiles_: PileView[] = [];
@@ -47,6 +46,8 @@ export class GamePresenter extends GamePresenterBase<IGame> {
 
     constructor(game: IGame, rootView: IView) {
         super(game, rootView);
+
+        this.updateSizes_();
 
         // create stock pile
         {
@@ -82,30 +83,41 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         this.relayoutAll_();
     }
 
+    private updateSizes_() {
+        const { sizeX, sizeY } = this.calculateCardSize(10, margin);
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+    }
+
     protected onResize_() {
+        this.updateSizes_();
         this.layoutPiles_();
         this.relayoutAll_();
     }
 
     private layoutPiles_() {
-        const xPos = (col: number) => (col - 4.5) * (sizeX + margin);
+        const scale = this.sizeY / 20;
+        const scaledMargin = margin * scale;
+        const rowOffset = this.sizeY * 0.45;
+
+        const xPos = (col: number) => (col - 4.5) * (this.sizeX + scaledMargin);
         const yPos = (row: number) => (row - 1.5) * rowOffset;
 
         // Stock and waste positioned at the bottom centered
         {
             const pileView = this.stockPile_;
-            pileView.rect = new Rect(sizeX, sizeY, xPos(3.5), yPos(4.3));
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(3.5), yPos(4.3));
         }
         {
             const pileView = this.wastePile_;
-            pileView.rect = new Rect(sizeX, sizeY, xPos(5.5), yPos(4.3));
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(5.5), yPos(4.3));
         }
 
         // Layout peaks
         for (let i = 0; i < this.game_.peaks.length; ++i) {
             const pileView = this.peakPiles_[i] ?? error();
             const coords = getPeakCoords(i);
-            pileView.rect = new Rect(sizeX, sizeY, xPos(coords.col), yPos(coords.row));
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(coords.col), yPos(coords.row));
         }
     }
 }

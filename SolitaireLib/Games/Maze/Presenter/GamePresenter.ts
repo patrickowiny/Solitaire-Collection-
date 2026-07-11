@@ -5,12 +5,12 @@ import { PileView } from "~CardLib/View/PileView";
 import { Rect } from "~CardLib/View/Rect";
 import { IGame } from "../Model/IGame";
 
-const scale = 0.6;
-const margin = 1 * scale;
-const sizeY = 20 * scale;
-const sizeX = sizeY / 1.555555555555;
+const margin = 1;
 
 export class GamePresenter extends GamePresenterBase<IGame> {
+    private sizeY = 20;
+    private sizeX = 20 / 1.555555555555;
+
     private readonly gridPiles_: PileView[] = [];
     private readonly discardPile_: PileView;
 
@@ -24,6 +24,8 @@ export class GamePresenter extends GamePresenterBase<IGame> {
 
     constructor(game: IGame, rootView: IView) {
         super(game, rootView);
+
+        this.updateSizes_();
 
         // create grid piles:
         for (let i = 0; i < 52; ++i) {
@@ -50,27 +52,37 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         this.relayoutAll_();
     }
 
+    private updateSizes_() {
+        const { sizeX, sizeY } = this.calculateCardSize(13, margin);
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+    }
+
     protected onResize_() {
+        this.updateSizes_();
         this.layoutPiles_();
         this.relayoutAll_();
     }
 
     private layoutPiles_() {
-        const xPos = (col: number) => (col - 6) * (sizeX + margin);
-        const yPos = (row: number) => (row - 1.5) * (sizeY + margin);
+        const scale = this.sizeY / 20;
+        const scaledMargin = margin * scale;
+
+        const xPos = (col: number) => (col - 6) * (this.sizeX + scaledMargin);
+        const yPos = (row: number) => (row - 1.5) * (this.sizeY + scaledMargin);
 
         for (let r = 0; r < 4; ++r) {
             for (let c = 0; c < 13; ++c) {
                 const pile = this.game_.gridPiles[r * 13 + c] ?? error();
                 const pileView = this.getPileView_(pile);
-                pileView.rect = new Rect(sizeX, sizeY, xPos(c), yPos(r));
+                pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(c), yPos(r));
             }
         }
 
         {
             const pile = this.game_.discardPile;
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(sizeX, sizeY, 0, yPos(0) - (sizeY + margin) * 1.2);
+            pileView.rect = new Rect(this.sizeX, this.sizeY, 0, yPos(0) - (this.sizeY + scaledMargin) * 1.2);
         }
     }
 }
