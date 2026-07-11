@@ -6,10 +6,11 @@ import { Rect } from "~CardLib/View/Rect";
 import { IGame } from "../Model/IGame";
 
 const margin = 1;
-const sizeY = 20;
-const sizeX = sizeY / 1.555555555555;
 
 export class GamePresenter extends GamePresenterBase<IGame> {
+    private sizeY = 20;
+    private sizeX = 20 / 1.555555555555;
+
     private readonly stockPile_: PileView;
     private readonly foundationPiles_: PileView[] = [];
     private readonly tableauPiles_: PileView[] = [];
@@ -24,6 +25,8 @@ export class GamePresenter extends GamePresenterBase<IGame> {
 
     constructor(game: IGame, rootView: IView) {
         super(game, rootView);
+
+        this.updateSizes_();
 
         // Create tableaux piles (0 to 7)
         for (let i = 0; i < this.game_.tableaux.length; ++i) {
@@ -58,7 +61,14 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         this.relayoutAll_();
     }
 
+    private updateSizes_() {
+        const { sizeX, sizeY } = this.calculateCardSize(9, margin);
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+    }
+
     protected onResize_() {
+        this.updateSizes_();
         this.layoutPiles_();
         this.relayoutAll_();
     }
@@ -66,6 +76,8 @@ export class GamePresenter extends GamePresenterBase<IGame> {
     private layoutPiles_() {
         // Horizontal spacing calculated for a 9-column grid layout
         const tableSize = 9;
+        const scale = this.sizeY / 20;
+        const scaledMargin = margin * scale;
 
         let vExpand = 1;
         if (window.matchMedia("screen and (max-aspect-ratio: 100/130)").matches) {
@@ -73,33 +85,33 @@ export class GamePresenter extends GamePresenterBase<IGame> {
         }
 
         const xPos = (colIndex: number) => {
-            return (colIndex - 0.5 * (tableSize - 1)) * (sizeX + margin);
+            return (colIndex - 0.5 * (tableSize - 1)) * (this.sizeX + scaledMargin);
         };
 
-        const topY = vExpand * -35 + margin;
-        const bottomY = topY + sizeY + margin * 2;
+        const topY = vExpand * -35 * scale + scaledMargin;
+        const bottomY = topY + this.sizeY + scaledMargin * 2;
 
         // Row 1 (Top): Foundations 8-15 placed horizontally from left to right (columns 0-7)
         for (let i = 0; i < this.game_.foundations.length; ++i) {
             const pile = this.game_.foundations[i] ?? error();
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(sizeX, sizeY, xPos(i), topY);
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(i), topY);
         }
 
         // Row 1 (Top): Stock 16 is placed to the right of Foundation 15 (column 8)
         {
             const pile = this.game_.stock;
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(sizeX, sizeY, xPos(8), topY);
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(8), topY);
         }
 
         // Row 2 (Bottom): Tableau stacks 0-7 arranged beneath the foundations (columns 0-7)
         for (let i = 0; i < this.game_.tableaux.length; ++i) {
             const pile = this.game_.tableaux[i] ?? error();
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(sizeX, sizeY, xPos(i), bottomY);
-            pileView.fanYDown = 3.5;
-            pileView.fanYUp = vExpand * 3.5;
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(i), bottomY);
+            pileView.fanYDown = 3.5 * scale;
+            pileView.fanYUp = vExpand * 3.5 * scale;
         }
     }
 }
