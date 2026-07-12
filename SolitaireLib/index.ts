@@ -34,8 +34,10 @@ import StreetsAndAlleys from "~Games/StreetsAndAlleys/GameInfo";
 import Sultan from "~Games/Sultan/GameInfo";
 import Terrace from "~Games/Terrace/GameInfo";
 import Accordion from "~Games/Accordion/GameInfo";
+import Westcliff from "~Games/Westcliff/GameInfo";
 
 const gameInfos = new Map<string, IGameInfo>();
+gameInfos.set(Westcliff.gameId, Westcliff);
 gameInfos.set(BeleagueredCastle.gameId, BeleagueredCastle);
 gameInfos.set(StreetsAndAlleys.gameId, StreetsAndAlleys);
 gameInfos.set(Klondike.gameId, Klondike);
