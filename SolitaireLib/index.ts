@@ -48,6 +48,7 @@ import Osmosis from "~Games/Osmosis/GameInfo";
 import LaBelleLucie from "~Games/LaBelleLucie/GameInfo";
 import Whist from "~Games/Whist/GameInfo";
 import Duchess from "~Games/Duchess/GameInfo";
+import EagleWing from "~Games/EagleWing/GameInfo";
 
 const gameInfos = new Map<string, IGameInfo>();
 gameInfos.set(LaBelleLucie.gameId, LaBelleLucie);
@@ -97,6 +98,7 @@ gameInfos.set(BlackHole.gameId, BlackHole);
 gameInfos.set(Osmosis.gameId, Osmosis);
 gameInfos.set(Whist.gameId, Whist);
 gameInfos.set(Duchess.gameId, Duchess);
+gameInfos.set(EagleWing.gameId, EagleWing);
 
 window.addEventListener("load", () => {
     const tableHolder = document.getElementById("tableHolder") ?? document.body;
