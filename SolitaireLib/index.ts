@@ -52,6 +52,7 @@ import Whist from "~Games/Whist/GameInfo";
 import Duchess from "~Games/Duchess/GameInfo";
 import EagleWing from "~Games/EagleWing/GameInfo";
 import Colorado from "~Games/Colorado/GameInfo";
+import AmericanToad from "~Games/AmericanToad/GameInfo";
 
 const gameInfos = new Map<string, IGameInfo>();
 gameInfos.set(LaBelleLucie.gameId, LaBelleLucie);
@@ -105,6 +106,7 @@ gameInfos.set(Whist.gameId, Whist);
 gameInfos.set(Duchess.gameId, Duchess);
 gameInfos.set(EagleWing.gameId, EagleWing);
 gameInfos.set(Colorado.gameId, Colorado);
+gameInfos.set(AmericanToad.gameId, AmericanToad);
 
 window.addEventListener("load", () => {
     const tableHolder = document.getElementById("tableHolder") ?? document.body;
