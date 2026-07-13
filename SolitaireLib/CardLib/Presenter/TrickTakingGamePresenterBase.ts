@@ -307,11 +307,17 @@ export abstract class TrickTakingGamePresenterBase<TGame extends TrickTakingGame
             av.element.style.top = `${avatarPositions[i].y}rem`;
 
             // Status details
-            av.updateStatus(this.game_.scoreTracker.getTricks(player), this.game_.scoreTracker.getScore(player));
+            const lockupLeft = this.game_.skippedTricks ? this.game_.skippedTricks[i] : 0;
+            av.updateStatus(
+                this.game_.scoreTracker.getTricks(player),
+                this.game_.scoreTracker.getScore(player),
+                lockupLeft
+            );
             av.setActive(i === this.game_.activePlayerIndex);
 
             if (this.game_.won) {
-                const isWinner = this.game_.scoreTracker.getScore(player) >= 7;
+                const winningScore = this.game_.winningScore;
+                const isWinner = this.game_.scoreTracker.getScore(player) >= winningScore;
                 av.setWinner(isWinner);
             }
         }
@@ -455,10 +461,11 @@ export abstract class TrickTakingGamePresenterBase<TGame extends TrickTakingGame
 
     private async onGameWonChanged_() {
         if (this.game_.won) {
+            const winningScore = this.game_.winningScore;
             for (let i = 0; i < 4; ++i) {
                 const player = this.game_.players[i];
                 const score = this.game_.scoreTracker.getScore(player);
-                if (score >= 7) {
+                if (score >= winningScore) {
                     this.avatarViews_[i].setWinner(true);
                 }
             }

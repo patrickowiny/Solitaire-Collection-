@@ -25,11 +25,17 @@ export abstract class TrickTakingGameBase extends GameBase {
     public roundStarterIndex = 0;
     public trumpSuit: Suit = Suit.None;
     public roundNumber = 0;
+    public skippedTricks: number[] = [0, 0, 0, 0];
+    public sittingOutThisTrick: boolean[] = [false, false, false, false];
 
     // Status
     public waitingForHumanPlay = false;
     public gameLog: string[] = [];
     public currentTrick: { player: IPlayer; card: Card }[] = [];
+
+    public get winningScore(): number {
+        return 7;
+    }
 
     // Generator-based turn loop state
     protected turnLoopGenerator: Generator<DelayHint, void> | null = null;
@@ -82,6 +88,8 @@ export abstract class TrickTakingGameBase extends GameBase {
     protected *startNewRound_(rng: prand.RandomGenerator): Generator<DelayHint, void> {
         this.scoreTracker.resetTricks();
         this.currentTrick = [];
+        this.skippedTricks = [0, 0, 0, 0];
+        this.sittingOutThisTrick = [false, false, false, false];
 
         // Clear played piles if any leftovers
         for (const pile of this.playedPiles) {
@@ -149,8 +157,61 @@ export abstract class TrickTakingGameBase extends GameBase {
     // Trick play sequence loop
     protected *runTurnLoop_(): Generator<DelayHint, void> {
         while (!this.won) {
+            if (this.currentTrick.length === 0) {
+                // Initialize trick skipped status!
+                for (let i = 0; i < 4; ++i) {
+                    if (this.skippedTricks[i] > 0) {
+                        this.sittingOutThisTrick[i] = true;
+                        // Discard a random card from hand:
+                        const hand = this.handPiles[i];
+                        if (hand.length > 0) {
+                            const discardIndex = Math.floor(Math.random() * hand.length);
+                            const card = hand.at(discardIndex);
+                            this.deckPile.push(card);
+                            card.doSetFaceUp(false);
+                            this.gameLog.push(`${this.players[i].name} discarded a card because of Lockup.`);
+                        }
+                    } else {
+                        this.sittingOutThisTrick[i] = false;
+                    }
+                }
+            }
+
             // Trick plays: 13 tricks in a round
-            while (this.currentTrick.length < 4) {
+            const expectedTrickSize = this.players.filter((_, idx) => !this.sittingOutThisTrick[idx]).length;
+            if (expectedTrickSize === 0) {
+                // All 4 players are locked up! Decrement lockups and move on
+                yield DelayHint.Settle;
+                this.gameLog.push("All players are locked up! Skipping this trick.");
+                for (let i = 0; i < 4; ++i) {
+                    if (this.sittingOutThisTrick[i]) {
+                        this.skippedTricks[i]--;
+                        if (this.skippedTricks[i] < 0) {
+                            this.skippedTricks[i] = 0;
+                        }
+                    }
+                }
+                // Check if all cards have been played (or discarded because round ended)
+                const roundEnded = this.handPiles.every(p => p.length === 0);
+                if (roundEnded) {
+                    this.evaluateRoundScores_();
+                    if (this.checkGameWon_()) {
+                        this.won = true;
+                        return;
+                    }
+                    this.roundNumber++;
+                    const rng = prand.mersenne(Date.now());
+                    yield* this.startNewRound_(rng);
+                    return;
+                }
+                continue;
+            }
+
+            while (this.currentTrick.length < expectedTrickSize) {
+                if (this.sittingOutThisTrick[this.activePlayerIndex]) {
+                    this.activePlayerIndex = (this.activePlayerIndex + 1) % 4;
+                    continue;
+                }
                 const currentPlayer = this.players[this.activePlayerIndex];
                 if (currentPlayer.isHuman) {
                     this.waitingForHumanPlay = true;
@@ -329,7 +390,8 @@ export abstract class TrickTakingGameBase extends GameBase {
     }
 
     protected *evaluateTrickWinner_(): Generator<DelayHint, void> {
-        if (this.currentTrick.length < 4) return;
+        const expectedTrickSize = this.players.filter((_, idx) => !this.sittingOutThisTrick[idx]).length;
+        if (this.currentTrick.length < expectedTrickSize || expectedTrickSize === 0) return;
 
         const leadSuit = this.currentTrick[0].card.suit;
         let winningPlay = this.currentTrick[0];
@@ -352,6 +414,16 @@ export abstract class TrickTakingGameBase extends GameBase {
                 if (card) {
                     this.deckPile.push(card);
                     card.doSetFaceUp(false);
+                }
+            }
+        }
+
+        // Decrement skipped counters for players who sat out this trick:
+        for (let i = 0; i < 4; ++i) {
+            if (this.sittingOutThisTrick[i]) {
+                this.skippedTricks[i]--;
+                if (this.skippedTricks[i] < 0) {
+                    this.skippedTricks[i] = 0;
                 }
             }
         }
@@ -416,6 +488,8 @@ export abstract class TrickTakingGameBase extends GameBase {
             trumpSuit: this.trumpSuit,
             waitingForHumanPlay: this.waitingForHumanPlay,
             gameLog: this.gameLog,
+            skippedTricks: this.skippedTricks,
+            sittingOutThisTrick: this.sittingOutThisTrick,
             scores: Array.from(this.players.map(p => ({
                 id: p.id,
                 score: this.scoreTracker.getScore(p),
@@ -440,6 +514,8 @@ export abstract class TrickTakingGameBase extends GameBase {
             this.trumpSuit = state.trumpSuit;
             this.waitingForHumanPlay = state.waitingForHumanPlay;
             this.gameLog = state.gameLog || [];
+            this.skippedTricks = state.skippedTricks || [0, 0, 0, 0];
+            this.sittingOutThisTrick = state.sittingOutThisTrick || [false, false, false, false];
 
             if (state.scores) {
                 this.scoreTracker.resetAll();
