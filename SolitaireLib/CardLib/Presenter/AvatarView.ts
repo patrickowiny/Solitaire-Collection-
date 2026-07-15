@@ -29,7 +29,7 @@ export class AvatarView implements IView {
         this.element.style.fontFamily = "inherit";
         this.element.style.fontSize = "1.6vh";
         this.element.style.transition = "all 0.3s ease-in-out";
-        this.element.style.zIndex = "100";
+        this.element.style.zIndex = "5";
         this.element.style.border = "2px solid transparent";
         this.element.style.width = "9rem";
         this.element.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.4)";
@@ -37,9 +37,7 @@ export class AvatarView implements IView {
 
         // Avatar Icon
         const icon = document.createElement("div");
-        icon.className = "avatarIcon";
-        icon.textContent = player.isHuman ? "👤" : "🤖";
-        icon.style.fontSize = "2.8vh";
+        icon.className = `avatarIcon seat${seat}`;
         icon.style.marginBottom = "0.2rem";
         this.element.appendChild(icon);
 

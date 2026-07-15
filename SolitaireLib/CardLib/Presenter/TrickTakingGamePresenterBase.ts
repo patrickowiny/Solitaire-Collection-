@@ -3,6 +3,7 @@ import { DelayHint } from "../Model/DelayHint";
 import { ICard } from "../Model/ICard";
 import { IPile } from "../Model/IPile";
 import { CardView } from "../View/CardView";
+import { TrickTakingCardView } from "../View/TrickTakingCardView";
 import { PileView } from "../View/PileView";
 import { Rect } from "../View/Rect";
 import { IGamePresenter } from "./IGamePresenter";
@@ -39,6 +40,8 @@ export abstract class TrickTakingGamePresenterBase<TGame extends TrickTakingGame
         // Hide solitaire-specific Undo/Redo buttons
         if (this.undoButton_) this.undoButton_.style.display = "none";
         if (this.redoButton_) this.redoButton_.style.display = "none";
+
+        this.rootView_.element.classList.add("trickTakingGame");
 
         game.wonChanged = () => {
             this.onGameWonChanged_();
@@ -129,7 +132,7 @@ export abstract class TrickTakingGamePresenterBase<TGame extends TrickTakingGame
         }
 
         for (const card of this.game_.cards) {
-            const cv = new CardView(this.rootView_, card.suit, card.colour, card.rank);
+            const cv = new TrickTakingCardView(this.rootView_, card.suit, card.colour, card.rank);
             cv.click = () => this.cardPrimary_(card);
             cv.dblClick = () => this.cardSecondary_(card);
             this.cardViews_.push(cv);

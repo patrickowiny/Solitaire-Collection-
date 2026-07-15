@@ -358,3 +358,58 @@ div#buttons button {
 }
 
 // Integrated duplicate standard card-face combinations for CrazyQuilt, mapped to standard suit & rank classes.
+
+// Trick-Taking Games custom styles
+.cardTable.trickTakingGame {
+    background-image: url("../assets/tables/table_green.png");
+    background-size: cover;
+    background-position: center;
+}
+
+.avatarIcon {
+    width: 4.5vh;
+    height: 4.5vh;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid #ccc;
+    box-sizing: border-box;
+
+    &.seatSouth {
+        background-image: url("../assets/avatars/char_7.png");
+    }
+    &.seatWest {
+        background-image: url("../assets/avatars/char_2.png");
+    }
+    &.seatNorth {
+        background-image: url("../assets/avatars/char_3.png");
+    }
+    &.seatEast {
+        background-image: url("../assets/avatars/char_4.png");
+    }
+}
+
+.card.trickTakingCard {
+    z-index: 10;
+
+    .cardBack {
+        background-image: url("../assets/cards/back.png");
+    }
+
+    .cardFront {
+        transform: rotateY(180deg) scaleX(-1);
+    }
+
+    $tt-ranks: (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 101, 102);
+    $tt-suits: (1, 2, 3, 4);
+
+    @each $suit in $tt-suits {
+        @each $rank in $tt-ranks {
+            &.s#{$suit}c1r#{$rank}, &.s#{$suit}c2r#{$rank} {
+                .cardFront {
+                    background-image: url("../assets/cards/s#{$suit}r#{$rank}.png");
+                }
+            }
+        }
+    }
+}
