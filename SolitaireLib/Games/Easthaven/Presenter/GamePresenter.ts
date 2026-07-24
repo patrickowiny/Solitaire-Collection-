@@ -12,6 +12,7 @@ export class GamePresenter extends GamePresenterBase<IGame> {
     private sizeX = 20 / 1.555555555555;
 
     private readonly stockPile_: PileView;
+    private readonly wastePile_: PileView;
     private readonly foundationPiles_: PileView[] = [];
     private readonly tableauPiles_: PileView[] = [];
 
@@ -33,6 +34,12 @@ export class GamePresenter extends GamePresenterBase<IGame> {
             const pileView = this.createPileView_(game.stock);
             pileView.showFrame = true;
             this.stockPile_ = pileView;
+        }
+        {
+            const pileView = this.createPileView_(game.waste);
+            pileView.showFrame = (game.options.stockDraws > 0);
+            pileView.zIndex = 50;
+            this.wastePile_ = pileView;
         }
         for (let i = 0; i < this.game_.foundations.length; ++i) {
             const pileView = this.createPileView_(game.foundations[i] ?? error());
@@ -87,6 +94,16 @@ export class GamePresenter extends GamePresenterBase<IGame> {
             const pile = this.game_.stock;
             const pileView = this.getPileView_(pile);
             pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(0), yTop);
+        }
+        {
+            const pile = this.game_.waste;
+            const pileView = this.getPileView_(pile);
+            if (this.game_.options.stockDraws > 0) {
+                pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(1), yTop);
+                pileView.fanXUp = 3 * scale;
+            } else {
+                pileView.rect = new Rect(0, 0, 0, 0);
+            }
         }
         for (let i = 0; i < this.game_.foundations.length; ++i) {
             const pile = this.game_.foundations[i] ?? error();

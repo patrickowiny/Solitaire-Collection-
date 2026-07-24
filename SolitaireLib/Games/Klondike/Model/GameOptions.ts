@@ -8,11 +8,13 @@ export class GameOptions extends GameOptionsBase {
     public autoReveal = true;
     public autoPlayStock = true;
     public autoMoveToFoundation = 2;
+    public buildSameColor = false;
 
     public get saveKey() {
         return {
             stockDraws: this.stockDraws,
             restocksAllowed: this.restocksAllowed,
+            buildSameColor: this.buildSameColor,
         };
     }
 
@@ -23,6 +25,7 @@ export class GameOptions extends GameOptionsBase {
         this.autoReveal = URLSearchParamsEx.getBool(params, "autoReveal", true);
         this.autoPlayStock = URLSearchParamsEx.getBool(params, "autoPlayStock", true);
         this.autoMoveToFoundation = Math.max(0, URLSearchParamsEx.getNumber(params, "autoMoveToFoundation", 2));
+        this.buildSameColor = URLSearchParamsEx.getBool(params, "buildSameColor", false);
     }
 
     public toURLSearchParams(): URLSearchParams {
@@ -32,6 +35,7 @@ export class GameOptions extends GameOptionsBase {
         URLSearchParamsEx.setBool(params, "autoReveal", this.autoReveal, true);
         URLSearchParamsEx.setBool(params, "autoPlayStock", this.autoPlayStock, true);
         URLSearchParamsEx.setNumber(params, "autoMoveToFoundation", this.autoMoveToFoundation, 2);
+        URLSearchParamsEx.setBool(params, "buildSameColor", this.buildSameColor, false);
         return params;
     }
 }

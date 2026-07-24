@@ -28,7 +28,7 @@ export class GamePresenter extends GamePresenterBase<IGame> {
 
         this.updateSizes_();
 
-        // Tableau piles 0-7:
+        // Tableau piles:
         for (let i = 0; i < this.game_.tableaux.length; ++i) {
             const pileView = this.createPileView_(game.tableaux[i] ?? error());
             pileView.showFrame = true;
@@ -36,7 +36,7 @@ export class GamePresenter extends GamePresenterBase<IGame> {
             this.tableauPiles_.push(pileView);
         }
 
-        // Free cells 8-11:
+        // Free cells:
         for (let i = 0; i < this.game_.freecells.length; ++i) {
             const pileView = this.createPileView_(game.freecells[i] ?? error());
             pileView.showFrame = true;
@@ -44,7 +44,7 @@ export class GamePresenter extends GamePresenterBase<IGame> {
             this.freecellPiles_.push(pileView);
         }
 
-        // Foundations 12-15:
+        // Foundations:
         for (let i = 0; i < this.game_.foundations.length; ++i) {
             const pileView = this.createPileView_(game.foundations[i] ?? error());
             pileView.showFrame = true;
@@ -62,7 +62,11 @@ export class GamePresenter extends GamePresenterBase<IGame> {
     }
 
     private updateSizes_() {
-        const { sizeX, sizeY } = this.calculateCardSize(8, margin);
+        const maxColumns = Math.max(
+            this.game_.tableaux.length,
+            this.game_.freecells.length + this.game_.foundations.length
+        );
+        const { sizeX, sizeY } = this.calculateCardSize(maxColumns, margin);
         this.sizeX = sizeX;
         this.sizeY = sizeY;
     }
@@ -74,7 +78,10 @@ export class GamePresenter extends GamePresenterBase<IGame> {
     }
 
     private layoutPiles_() {
-        const tableSize = 8;
+        const maxColumns = Math.max(
+            this.game_.tableaux.length,
+            this.game_.freecells.length + this.game_.foundations.length
+        );
         const scale = this.sizeY / 20;
         const scaledMargin = margin * scale;
 
@@ -83,31 +90,36 @@ export class GamePresenter extends GamePresenterBase<IGame> {
             vExpand = 1.5;
         }
 
-        const xPos = (colIndex: number) => {
-            return (colIndex - 0.5 * (tableSize - 1)) * (this.sizeX + scaledMargin);
+        const xPosTop = (colIndex: number) => {
+            return (colIndex - 0.5 * (maxColumns - 1)) * (this.sizeX + scaledMargin);
+        };
+
+        const xPosBottom = (colIndex: number) => {
+            return (colIndex - 0.5 * (this.game_.tableaux.length - 1)) * (this.sizeX + scaledMargin);
         };
 
         const topY = vExpand * -35 * scale + scaledMargin;
         const bottomY = topY + this.sizeY + scaledMargin * 2;
 
-        // Row 1 (Top): Free cells on left side (columns 0-3), Foundations on right side (columns 4-7)
+        // Row 1 (Top): Free cells on left side
         for (let i = 0; i < this.game_.freecells.length; ++i) {
             const pile = this.game_.freecells[i] ?? error();
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(i), topY);
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPosTop(i), topY);
         }
 
+        // Row 1 (Top): Foundations on right side
         for (let i = 0; i < this.game_.foundations.length; ++i) {
             const pile = this.game_.foundations[i] ?? error();
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(i + 4), topY);
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPosTop(maxColumns - this.game_.foundations.length + i), topY);
         }
 
-        // Row 2 (Bottom): Tableau stacks 0-7 arranged horizontally directly beneath
+        // Row 2 (Bottom): Tableau stacks arranged horizontally directly beneath
         for (let i = 0; i < this.game_.tableaux.length; ++i) {
             const pile = this.game_.tableaux[i] ?? error();
             const pileView = this.getPileView_(pile);
-            pileView.rect = new Rect(this.sizeX, this.sizeY, xPos(i), bottomY);
+            pileView.rect = new Rect(this.sizeX, this.sizeY, xPosBottom(i), bottomY);
             pileView.fanYDown = 3.5 * scale;
             pileView.fanYUp = vExpand * 3.5 * scale;
         }

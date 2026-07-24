@@ -22,6 +22,7 @@ export class Game extends GameBase implements IGame {
     private readonly dragSingleSources_: Pile[] = [];
     private readonly autoMoveSources_: Pile[] = [];
     private baseRank_: Rank | undefined = undefined;
+    private restocks_ = 0;
 
     constructor(options: GameOptions) {
         super();
@@ -102,6 +103,7 @@ export class Game extends GameBase implements IGame {
 
     protected *restart_(rng: prand.RandomGenerator) {
         this.baseRank_ = undefined;
+        this.restocks_ = 0;
 
         // Reset all cards to stock face-down
         for (const card of this.stock) {
@@ -186,8 +188,10 @@ export class Game extends GameBase implements IGame {
         if (
             pile === this.stock &&
             this.stock.length === 0 &&
-            (this.waste9.length > 0 || this.waste10.length > 0 || this.waste11.length > 0)
+            (this.waste9.length > 0 || this.waste10.length > 0 || this.waste11.length > 0) &&
+            this.restocks_ < this.options.restocksAllowed
         ) {
+            this.restocks_++;
             const wastePiles = [this.waste9, this.waste10, this.waste11];
             for (const waste of wastePiles) {
                 for (let i = 0; i < waste.length; ++i) {
@@ -250,23 +254,29 @@ export class Game extends GameBase implements IGame {
     }
 
     private *doDrawFromStock_() {
-        const card1 = this.stock.peek();
-        if (card1) {
-            this.waste9.push(card1);
-            card1.faceUp = true;
-            yield DelayHint.Quick;
+        if (this.options.stockDraws >= 1) {
+            const card1 = this.stock.peek();
+            if (card1) {
+                this.waste9.push(card1);
+                card1.faceUp = true;
+                yield DelayHint.Quick;
+            }
         }
-        const card2 = this.stock.peek();
-        if (card2) {
-            this.waste10.push(card2);
-            card2.faceUp = true;
-            yield DelayHint.Quick;
+        if (this.options.stockDraws >= 2) {
+            const card2 = this.stock.peek();
+            if (card2) {
+                this.waste10.push(card2);
+                card2.faceUp = true;
+                yield DelayHint.Quick;
+            }
         }
-        const card3 = this.stock.peek();
-        if (card3) {
-            this.waste11.push(card3);
-            card3.faceUp = true;
-            yield DelayHint.Quick;
+        if (this.options.stockDraws >= 3) {
+            const card3 = this.stock.peek();
+            if (card3) {
+                this.waste11.push(card3);
+                card3.faceUp = true;
+                yield DelayHint.Quick;
+            }
         }
         yield DelayHint.OneByOne;
     }

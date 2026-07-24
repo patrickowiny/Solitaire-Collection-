@@ -14,16 +14,21 @@ const TABLEAUX_COUNT = 7;
 export class Game extends GameBase implements IGame {
     public readonly options: GameOptions;
     public readonly stock = new Pile(this);
+    public readonly waste = new Pile(this);
     public readonly foundations: Pile[] = [];
     public readonly tableaux: Pile[] = [];
     private readonly dragSingleSources_: Pile[] = [];
     private readonly autoMoveSources_: Pile[] = [];
+    private restocks_ = 0;
 
     constructor(options: GameOptions) {
         super();
 
         this.options = options;
         this.piles.push(this.stock);
+        this.piles.push(this.waste);
+        this.dragSingleSources_.push(this.waste);
+        this.autoMoveSources_.push(this.waste);
 
         for (let i = 0; i < 4; ++i) {
             const pile = new Pile(this);
@@ -69,6 +74,8 @@ export class Game extends GameBase implements IGame {
     }
 
     protected *restart_(rng: prand.RandomGenerator) {
+        this.restocks_ = 0;
+
         // put all the cards face down back into the stock
         for (const card of this.stock) {
             card.faceUp = false;
@@ -111,7 +118,11 @@ export class Game extends GameBase implements IGame {
     protected *cardPrimary_(card: Card) {
         // if the player clicks on any card of the stock, deal from it:
         if (card.pile === this.stock && this.canDealFromStock_()) {
-            yield* this.doDeal_();
+            if (this.options.stockDraws > 0) {
+                yield* this.doDrawFromStock_();
+            } else {
+                yield* this.doDeal_();
+            }
             yield* this.doAutoMoves_();
             return;
         }
@@ -143,7 +154,35 @@ export class Game extends GameBase implements IGame {
     protected *pilePrimary_(pile: Pile) {
         // if the player clicks the stock pile, deal from it:
         if (pile === this.stock && this.canDealFromStock_()) {
-            yield* this.doDeal_();
+            if (this.options.stockDraws > 0) {
+                yield* this.doDrawFromStock_();
+            } else {
+                yield* this.doDeal_();
+            }
+            yield* this.doAutoMoves_();
+            return;
+        }
+
+        // if the player clicks the stock and it has been depleted, move the waste back to the stock (if waste enabled):
+        if (
+            this.options.stockDraws > 0 &&
+            pile === this.stock &&
+            this.stock.length === 0 &&
+            this.waste.length > 0 &&
+            this.restocks_ < this.options.restocksAllowed
+        ) {
+            this.restocks_++;
+            for (let i = this.waste.length; i-- > 0; ) {
+                const card = this.waste.at(i);
+                card.faceUp = false;
+            }
+            this.waste.maxFan = 0;
+            yield DelayHint.OneByOne;
+            for (let i = this.waste.length; i-- > 0; ) {
+                const card = this.waste.at(i);
+                this.stock.push(card);
+            }
+            yield DelayHint.OneByOne;
             yield* this.doAutoMoves_();
             return;
         }
@@ -192,6 +231,7 @@ export class Game extends GameBase implements IGame {
 
     private canDealFromStock_(): boolean {
         if (this.stock.length === 0) return false;
+        if (this.options.stockDraws > 0) return true;
         return !this.hasAvailableKingMove_();
     }
 
@@ -203,6 +243,23 @@ export class Game extends GameBase implements IGame {
                 tableau.push(card);
                 card.faceUp = true;
                 yield DelayHint.Quick;
+            }
+        }
+        yield DelayHint.OneByOne;
+    }
+
+    private *doDrawFromStock_() {
+        this.waste.maxFan = 0;
+        for (let i = 0; i < this.options.stockDraws; ++i) {
+            const card = this.stock.peek();
+            if (card) {
+                this.waste.push(card);
+                this.waste.maxFan++;
+                yield DelayHint.Quick;
+                card.faceUp = true;
+                if (i < this.options.stockDraws - 1) {
+                    yield DelayHint.Quick;
+                }
             }
         }
         yield DelayHint.OneByOne;
@@ -254,9 +311,13 @@ export class Game extends GameBase implements IGame {
     }
 
     private *doTableauxDrop_(card: Card, pile: Pile) {
+        const sourcePile = card.pile;
         const movingCards = card.pile.slice(card.pileIndex);
         for (const movingCard of movingCards) {
             pile.push(movingCard);
+        }
+        if (this.options.stockDraws > 0 && sourcePile === this.waste) {
+            this.waste.maxFan--;
         }
         yield DelayHint.OneByOne;
     }
@@ -287,7 +348,11 @@ export class Game extends GameBase implements IGame {
     }
 
     private *doFoundationDrop_(card: Card, pile: Pile) {
+        const sourcePile = card.pile;
         pile.push(card);
+        if (this.options.stockDraws > 0 && sourcePile === this.waste) {
+            this.waste.maxFan--;
+        }
         yield DelayHint.OneByOne;
     }
 
