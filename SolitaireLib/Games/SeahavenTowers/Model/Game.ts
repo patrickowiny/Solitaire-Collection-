@@ -227,7 +227,7 @@ export class Game extends GameBase implements IGame {
         if (topCard) {
             return topCard.suit === card.suit && this.getCardValue_(topCard) === this.getCardValue_(card) + 1;
         } else {
-            return card.rank === Rank.King;
+            return this.options.tuxedoRules || card.rank === Rank.King;
         }
     }
 

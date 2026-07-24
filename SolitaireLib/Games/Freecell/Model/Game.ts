@@ -20,30 +20,33 @@ export class Game extends GameBase implements IGame {
 
         this.options = options;
 
-        // Register piles in the exact layout order (indices 0 to 15)
-        // Stacks 0 to 7: Tableau piles
-        for (let i = 0; i < 8; ++i) {
+        // Register tableau piles dynamically (options.columnsCount)
+        for (let i = 0; i < this.options.columnsCount; ++i) {
             const pile = new Pile(this);
             this.tableaux.push(pile);
             this.piles.push(pile);
         }
 
-        // Stacks 8 to 11: Free cells
-        for (let i = 0; i < 4; ++i) {
+        // Register free cells dynamically (options.cellsCount)
+        for (let i = 0; i < this.options.cellsCount; ++i) {
             const pile = new Pile(this);
             this.freecells.push(pile);
             this.piles.push(pile);
         }
 
-        // Stacks 12 to 15: Foundation piles
-        for (let i = 0; i < 4; ++i) {
+        // Register foundation piles dynamically (4 * options.decksCount)
+        const foundationCount = 4 * this.options.decksCount;
+        for (let i = 0; i < foundationCount; ++i) {
             const pile = new Pile(this);
             this.foundations.push(pile);
             this.piles.push(pile);
         }
 
-        // Create standard 52-card deck
-        this.cards = DeckUtils.createStandard52Deck(this.tableaux[0] ?? Debug.error());
+        // Create standard deck (52 * decksCount)
+        this.cards = [];
+        for (let i = 0; i < this.options.decksCount; ++i) {
+            this.cards.push(...DeckUtils.createStandard52Deck(this.tableaux[0] ?? Debug.error()));
+        }
     }
 
     protected doGetWon_() {
@@ -51,7 +54,7 @@ export class Game extends GameBase implements IGame {
         for (const pile of this.foundations) {
             sum += pile.length;
         }
-        return sum === 52;
+        return sum === 52 * this.options.decksCount;
     }
 
     public get wonCards() {
@@ -93,9 +96,10 @@ export class Game extends GameBase implements IGame {
 
         yield DelayHint.Settle;
 
-        // Deal 52 cards face up across 8 tableau piles round-robin
-        for (let j = 0; j < 52; ++j) {
-            const destTableau = this.tableaux[j % 8] ?? Debug.error();
+        const totalCards = 52 * this.options.decksCount;
+        // Deal cards face up across tableaux columns round-robin
+        for (let j = 0; j < totalCards; ++j) {
+            const destTableau = this.tableaux[j % this.options.columnsCount] ?? Debug.error();
             const card = tempPile.peek();
             if (card) {
                 destTableau.push(card);
@@ -227,7 +231,7 @@ export class Game extends GameBase implements IGame {
         if (topCard) {
             return topCard.colour !== card.colour && this.getCardValue_(topCard) === this.getCardValue_(card) + 1;
         } else {
-            return true;
+            return !this.options.emptyTableauKingsOnly || card.rank === Rank.King;
         }
     }
 

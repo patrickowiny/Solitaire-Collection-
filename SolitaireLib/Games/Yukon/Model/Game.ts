@@ -196,8 +196,14 @@ export class Game extends GameBase implements IGame {
 
         const topCard = pile.peek();
         if (topCard) {
-            // Alternating colors, building down
-            return topCard.colour !== card.colour && this.getCardValue_(topCard) === this.getCardValue_(card) + 1;
+            if (this.options.buildInSuit) {
+                // Alaska: same suit, build down or up
+                const diff = this.getCardValue_(topCard) - this.getCardValue_(card);
+                return topCard.suit === card.suit && (diff === 1 || diff === -1);
+            } else {
+                // Yukon: alternating colors, building down
+                return topCard.colour !== card.colour && this.getCardValue_(topCard) === this.getCardValue_(card) + 1;
+            }
         } else {
             // Empty tableau slots can only be filled by Kings
             return card.rank === Rank.King;

@@ -1,8 +1,199 @@
 export function getHowToPlay(gameId: string): string {
     const id = gameId.toLowerCase();
 
-    // Map of specific instructions for well-known games to match user expectations
+    // Map of specific instructions for well-known games and their variants to match user expectations
     const specificGuides: Record<string, string> = {
+        klondike_draw_1_easy: `
+            <p><strong>Overview:</strong> Klondike Draw 1 (Easy) is a relaxed version of the classic Solitaire. You draw cards one by one from the stock, and you have unlimited restocks of the deck, making it highly winnable.</p>
+            <p><strong>Rules:</strong>
+                <ul>
+                    <li>Build tableau columns down in alternating colors (e.g., Red 7 on Black 8).</li>
+                    <li>Move a single card or any valid alternating sequence between tableau columns.</li>
+                    <li>Only Kings can fill empty tableau columns.</li>
+                    <li>Unlimited passes through the stock, drawing 1 card at a time.</li>
+                </ul>
+            </p>
+        `,
+        klondike_draw_1_hard: `
+            <p><strong>Overview:</strong> Klondike Draw 1 (Hard) is a strict single-draw game. You draw cards one by one, but you are allowed zero restocks (only 1 pass through the deck), requiring perfect foresight.</p>
+            <p><strong>Rules:</strong>
+                <ul>
+                    <li>Build tableau columns down in alternating colors.</li>
+                    <li>Only Kings can fill empty columns.</li>
+                    <li>Only a single pass through the stock, drawing 1 card at a time. No recycling!</li>
+                </ul>
+            </p>
+        `,
+        klondike_draw_3_easy: `
+            <p><strong>Overview:</strong> Klondike Draw 3 (Easy) draws cards in groups of three to the waste pile, but allows unlimited restocks of the stock deck.</p>
+            <p><strong>Rules:</strong>
+                <ul>
+                    <li>Build tableau columns down in alternating colors.</li>
+                    <li>Draw 3 cards at a time from the stock. Only the top card of the waste pile is playable.</li>
+                    <li>Unlimited passes through the stock.</li>
+                </ul>
+            </p>
+        `,
+        klondike_draw_3_hard: `
+            <p><strong>Overview:</strong> Klondike Draw 3 (Hard) is the classic casino Solitaire rule set. You draw 3 cards at a time and are allowed only 1 restock (2 passes total) of the deck.</p>
+            <p><strong>Rules:</strong>
+                <ul>
+                    <li>Draw 3 cards at a time to the waste pile.</li>
+                    <li>Exactly 1 restock allowed. Once the stock is depleted twice, the game is set.</li>
+                </ul>
+            </p>
+        `,
+        klondike_draw_2: `
+            <p><strong>Overview:</strong> Klondike Draw 2 is an interesting middle-ground variant where you draw 2 cards at a time from the stock, with unlimited restocks allowed.</p>
+        `,
+        klondike_draw_4: `
+            <p><strong>Overview:</strong> Klondike Draw 4 is a challenging variant where you draw 4 cards at a time from the stock, which can easily bury the cards you need deep in the waste pile.</p>
+        `,
+        klondike_draw_5: `
+            <p><strong>Overview:</strong> Klondike Draw 5 is an extreme Klondike variant where you draw 5 cards at a time from the stock. This requires deep strategic planning to uncover hidden moves.</p>
+        `,
+        klondike_d3_strict: `
+            <p><strong>Overview:</strong> Klondike Draw 3 (Strict) is the ultimate test of Klondike skill. You draw 3 cards at a time and have zero restocks allowed (only 1 pass through the deck).</p>
+        `,
+        whitehead: `
+            <p><strong>Overview:</strong> Whitehead is a classic and highly strategic Klondike variant where all cards are dealt face-up, removing the element of luck from the tableau.</p>
+            <p><strong>Unique Rules:</strong>
+                <ul>
+                    <li><strong>All Face-Up:</strong> All cards in the tableau are dealt face-up at the start of the game.</li>
+                    <li><strong>Same-Color Building:</strong> Tableau columns are built down in the <em>same color</em> (e.g., Red Queen on Red King, or Club 8 on Spade 9).</li>
+                    <li><strong>Suit-Based Movement:</strong> A sequence of cards can only be moved together as a unit if they are in the <em>same suit</em> (e.g., Heart Jack, Heart 10, Heart 9).</li>
+                    <li><strong>Empty Columns:</strong> Any card (not just a King) can fill an empty tableau column.</li>
+                </ul>
+            </p>
+        `,
+        alaska: `
+            <p><strong>Overview:</strong> Alaska is an exciting Yukon variant that allows you to build columns both up and down in the same suit, making for incredibly dynamic sequences.</p>
+            <p><strong>Unique Rules:</strong>
+                <ul>
+                    <li><strong>Up or Down:</strong> Tableau columns can be built <em>either up or down</em> in the same suit (e.g., you can play the 9 of Spades or the Jack of Spades on the 10 of Spades).</li>
+                    <li><strong>Group Movement:</strong> Like Yukon, any face-up card can be dragged along with all cards on top of it, regardless of whether they are in sequence.</li>
+                    <li><strong>Empty Columns:</strong> Only Kings can fill empty tableau columns.</li>
+                </ul>
+            </p>
+        `,
+        easthaven_draw_3: `
+            <p><strong>Overview:</strong> Easthaven (Draw 3) combines Easthaven's tableau layout (7 columns of 3 cards each) with a Klondike-style Draw 3 waste pile mechanism.</p>
+            <p><strong>Rules:</strong>
+                <ul>
+                    <li>The tableau is set up with 7 columns of 3 cards each (2 face-down, 1 face-up).</li>
+                    <li>Instead of dealing to the tableau, clicking the stock draws 3 cards at a time to a waste pile.</li>
+                    <li>Tableau columns are built down in alternating colors. Empty columns can only be filled by Kings.</li>
+                </ul>
+            </p>
+        `,
+        easthaven_draw_1_easy: `
+            <p><strong>Overview:</strong> Easthaven Draw 1 (Easy) features a 7x3 tableau and uses a Klondike-style Draw 1 waste pile with unlimited restocks of the stock deck.</p>
+        `,
+        canfield_draw_1_hard: `
+            <p><strong>Overview:</strong> Canfield (Draw 1, Hard) draws cards one by one from the stock, but allows zero restocks of the deck, making it incredibly tight and challenging.</p>
+        `,
+        canfield_draw_3_hard: `
+            <p><strong>Overview:</strong> Canfield (Draw 3, Hard) draws cards 3 at a time from the stock, and allows only 1 restock (2 passes total) of the deck.</p>
+        `,
+        canfield_draw_1: `
+            <p><strong>Overview:</strong> Canfield (Draw 1) is a strategic variant where you draw cards one by one from the stock, with unlimited restocks allowed.</p>
+        `,
+        canfield_draw_2: `
+            <p><strong>Overview:</strong> Canfield (Draw 2) is a strategic variant where you draw cards two by two from the stock, with unlimited restocks allowed.</p>
+        `,
+        canfield_d1_strict: `
+            <p><strong>Overview:</strong> Canfield Draw 1 (Strict) is a very difficult variant where you draw 1 card at a time and have zero restocks of the deck allowed.</p>
+        `,
+        josephine: `
+            <p><strong>Overview:</strong> Josephine is a popular Forty Thieves variant that relaxes the movement rules, allowing same-suit sequences to be moved together.</p>
+            <p><strong>Unique Rules:</strong>
+                <ul>
+                    <li>Tableau columns build down in the same suit (like Forty Thieves).</li>
+                    <li>Unlike Forty Thieves, any correctly ordered sequence of cards in the <em>same suit</em> can be moved together as a unit.</li>
+                </ul>
+            </p>
+        `,
+        lucas: `
+            <p><strong>Overview:</strong> Lucas is a historic Forty Thieves variant. All Aces are automatically extracted and dealt to the foundations first, and the remaining cards are dealt into 13 tableau columns of 3 cards each.</p>
+            <p><strong>Unique Rules:</strong>
+                <ul>
+                    <li>All Aces start directly on foundations.</li>
+                    <li>13 tableau columns of 3 cards each, all dealt face-up.</li>
+                </ul>
+            </p>
+        `,
+        maria: `
+            <p><strong>Overview:</strong> Maria Solitaire is a Forty Thieves variant played with 9 tableau columns of 4 cards each. Fewer columns makes clearing spaces more difficult.</p>
+        `,
+        limited: `
+            <p><strong>Overview:</strong> Limited Solitaire is a Forty Thieves variant with 12 tableau columns of 3 cards each, giving you more columns but fewer cards in each column initially.</p>
+        `,
+        streets: `
+            <p><strong>Overview:</strong> Streets is a classic Forty Thieves variant where tableau columns build down in alternating colors instead of same suit, making building much easier.</p>
+        `,
+        rank_and_file: `
+            <p><strong>Overview:</strong> Rank and File is an intriguing Forty Thieves variant where the bottom 3 cards of each column are dealt face-down, with only the top card dealt face-up.</p>
+        `,
+        number_ten: `
+            <p><strong>Overview:</strong> Number Ten is a Forty Thieves variant with 10 columns. Each column is dealt 2 cards face down and 2 cards face up. Building in the tableau is down in alternating colors.</p>
+        `,
+        red_and_black: `
+            <p><strong>Overview:</strong> Red and Black is a Forty Thieves variant where building in the tableau is down in alternating colors instead of same suit, allowing for longer builds.</p>
+        `,
+        emperor: `
+            <p><strong>Overview:</strong> Emperor is a hybrid of Forty Thieves and Klondike. Each of the 10 columns is dealt 3 cards: 2 face-down, 1 face-up. Tableau columns build down in alternating colors.</p>
+        `,
+        ali_baba: `
+            <p><strong>Overview:</strong> Ali Baba Solitaire is a highly winnable Forty Thieves variant with 10 columns of 4 cards each. Same-suit sequences of cards can be moved as a unit.</p>
+        `,
+        blockade: `
+            <p><strong>Overview:</strong> Blockade is a unique and strategic Forty Thieves variant with 12 columns of 1 card each. Deals from stock deal 1 card face up to each column.</p>
+            <p><strong>Unique Rules:</strong>
+                <ul>
+                    <li>12 tableau columns, initially empty or holding 1 card each.</li>
+                    <li>Instead of drawing to a waste pile, clicking the stock deals 1 card face up to every column.</li>
+                </ul>
+            </p>
+        `,
+        busy_aces: `
+            <p><strong>Overview:</strong> Busy Aces is a Forty Thieves variant with 12 tableau columns of only 1 card each, making the board extremely wide and empty columns frequent.</p>
+        `,
+        freecell_easy: `
+            <p><strong>Overview:</strong> Freecell (Easy) has automatic moves to foundation boosted to 3, and automatic reveal enabled, helping you win games with ease.</p>
+        `,
+        freecell_hard: `
+            <p><strong>Overview:</strong> Freecell (Hard) disables all automatic moves to foundations, forcing you to manually place every card and fully manage your board state.</p>
+        `,
+        freecell_d1: `
+            <p><strong>Overview:</strong> Freecell (1 Cell) is an extremely challenging Freecell variant with only 1 temporary holding cell instead of the standard 4 cells.</p>
+        `,
+        freecell_d2: `
+            <p><strong>Overview:</strong> Freecell (2 Cells) is a tight Freecell variant with only 2 temporary holding cells instead of 4.</p>
+        `,
+        freecell_d3: `
+            <p><strong>Overview:</strong> Freecell (3 Cells) is a challenging Freecell variant with only 3 temporary holding cells instead of 4.</p>
+        `,
+        double_freecell: `
+            <p><strong>Overview:</strong> Double Freecell is a huge double-deck Freecell game played with 2 standard decks (104 cards total) and 8 foundation piles.</p>
+        `,
+        triple_freecell: `
+            <p><strong>Overview:</strong> Triple Freecell is a massive triple-deck Freecell game played with 3 standard decks (156 cards total) and 12 foundation piles.</p>
+        `,
+        forecell: `
+            <p><strong>Overview:</strong> Forecell is a Freecell variant where empty tableau columns can only be filled by a King or a sequence starting with a King.</p>
+        `,
+        seven: `
+            <p><strong>Overview:</strong> Seven Freecell is played with only 7 tableau columns instead of the standard 8, slightly tightening card distributions.</p>
+        `,
+        tuxedo: `
+            <p><strong>Overview:</strong> Tuxedo is a Seahaven Towers variant that gives you maximum tactical freedom by allowing any card to fill empty tableau spaces.</p>
+            <p><strong>Unique Rules:</strong>
+                <ul>
+                    <li>Build down in the same suit (standard Seahaven Towers building rules).</li>
+                    <li>Unlike Seahaven Towers, empty tableau columns can be filled by <em>any card</em>, not just Kings!</li>
+                </ul>
+            </p>
+        `,
         klondike: `
             <p><strong>Overview:</strong> Klondike is the most classic and popular Solitaire game. The goal is to build up the four foundations by suit from Ace to King.</p>
             <p><strong>Layout:</strong>
@@ -181,6 +372,13 @@ export function getHowToPlay(gameId: string): string {
     };
 
     // Return the specific guide if found
+    for (const key of Object.keys(specificGuides)) {
+        if (id === key) {
+            return specificGuides[key]!;
+        }
+    }
+
+    // Secondary sub-string matching for fallback compatibility
     for (const key of Object.keys(specificGuides)) {
         if (id.includes(key)) {
             return specificGuides[key]!;

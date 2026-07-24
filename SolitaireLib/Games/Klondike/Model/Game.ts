@@ -107,6 +107,9 @@ export class Game extends GameBase implements IGame {
                 const card = this.stock.peek();
                 if (card) {
                     pile.push(card);
+                    if (this.options.buildSameColor) {
+                        card.faceUp = true;
+                    }
                     yield DelayHint.Quick;
                 }
             }
@@ -231,11 +234,17 @@ export class Game extends GameBase implements IGame {
             const topCard = pile.peek();
 
             if (topCard) {
-                if (this.getCardValue_(topCard) === this.getCardValue_(card) + 1 && topCard.colour !== card.colour) {
-                    return true;
+                if (this.options.buildSameColor) {
+                    if (this.getCardValue_(topCard) === this.getCardValue_(card) + 1 && topCard.colour === card.colour) {
+                        return true;
+                    }
+                } else {
+                    if (this.getCardValue_(topCard) === this.getCardValue_(card) + 1 && topCard.colour !== card.colour) {
+                        return true;
+                    }
                 }
             } else {
-                if (card.rank === Rank.King) {
+                if (this.options.buildSameColor || card.rank === Rank.King) {
                     return true;
                 }
             }
@@ -251,17 +260,32 @@ export class Game extends GameBase implements IGame {
             for (let i = card.pile.length - 1; i-- > 0; ) {
                 const card0 = card.pile.at(i);
                 const card1 = card.pile.at(i + 1);
-                if (
-                    card0.faceUp &&
-                    card1.faceUp &&
-                    card0.colour !== card1.colour &&
-                    this.getCardValue_(card1) === this.getCardValue_(card0) - 1
-                ) {
-                    if (card0 === card) {
-                        return true;
+                if (this.options.buildSameColor) {
+                    if (
+                        card0.faceUp &&
+                        card1.faceUp &&
+                        card0.suit === card1.suit &&
+                        this.getCardValue_(card1) === this.getCardValue_(card0) - 1
+                    ) {
+                        if (card0 === card) {
+                            return true;
+                        }
+                    } else {
+                        return false;
                     }
                 } else {
-                    return false;
+                    if (
+                        card0.faceUp &&
+                        card1.faceUp &&
+                        card0.colour !== card1.colour &&
+                        this.getCardValue_(card1) === this.getCardValue_(card0) - 1
+                    ) {
+                        if (card0 === card) {
+                            return true;
+                        }
+                    } else {
+                        return false;
+                    }
                 }
             }
         }

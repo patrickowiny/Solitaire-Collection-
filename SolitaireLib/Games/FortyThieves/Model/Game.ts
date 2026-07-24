@@ -25,9 +25,8 @@ export class Game extends GameBase implements IGame {
 
         this.options = options;
 
-        // Register piles in exact layout order (indices 0 to 19):
-        // Stacks 0 to 9: Tableau piles
-        for (let i = 0; i < 10; ++i) {
+        // Register tableau piles dynamically (options.columnsCount)
+        for (let i = 0; i < this.options.columnsCount; ++i) {
             const pile = new Pile(this);
             this.tableaux.push(pile);
             this.piles.push(pile);
@@ -35,7 +34,7 @@ export class Game extends GameBase implements IGame {
             this.autoMoveSources_.push(pile);
         }
 
-        // Stacks 10 to 17: Foundation piles
+        // Stacks 10 to 17: Foundation piles (always 8 for two decks)
         for (let i = 0; i < 8; ++i) {
             const pile = new Pile(this);
             this.foundations.push(pile);
@@ -43,12 +42,12 @@ export class Game extends GameBase implements IGame {
             this.dragSingleSources_.push(pile);
         }
 
-        // Stack 18: Discard/Waste pile
+        // Waste pile
         this.piles.push(this.waste);
         this.dragSingleSources_.push(this.waste);
         this.autoMoveSources_.push(this.waste);
 
-        // Stack 19: Stock/Main pile
+        // Stock/Main pile
         this.piles.push(this.stock);
 
         // Cards: 2 standard 52 decks (104 cards total)
@@ -106,14 +105,42 @@ export class Game extends GameBase implements IGame {
 
         yield DelayHint.Settle;
 
-        // Deal 4 cards face up to each of the 10 tableau columns (40 cards total).
-        for (let i = 0; i < 40; ++i) {
-            const tableauIndex = i % 10;
+        if (this.options.dealAcesFirst) {
+            // Find all Aces in stock and deal them directly to foundations
+            let foundationIdx = 0;
+            for (let i = this.stock.length - 1; i >= 0; --i) {
+                const card = this.stock.at(i);
+                if (card.rank === Rank.Ace) {
+                    const fd = this.foundations[foundationIdx++];
+                    fd.push(card);
+                    card.faceUp = true;
+                    yield DelayHint.Quick;
+                    if (foundationIdx >= this.foundations.length) break;
+                }
+            }
+        }
+
+        // Deal dynamic cards to each of the tableau columns.
+        const totalToDeal = this.options.columnsCount * this.options.cardsPerColumn;
+        for (let i = 0; i < totalToDeal; ++i) {
+            const tableauIndex = i % this.options.columnsCount;
             const card = this.stock.peek();
             if (card) {
                 this.tableaux[tableauIndex].push(card);
                 card.faceUp = true;
                 yield DelayHint.Quick;
+            }
+        }
+
+        // Apply face-down rules:
+        if (this.options.cardsFaceDown) {
+            for (const tableau of this.tableaux) {
+                const totalInCol = tableau.length;
+                const faceUpCount = this.options.cardsFaceUp;
+                for (let idx = 0; idx < totalInCol; ++idx) {
+                    const card = tableau.at(idx);
+                    card.faceUp = (idx >= totalInCol - faceUpCount);
+                }
             }
         }
 
@@ -123,11 +150,25 @@ export class Game extends GameBase implements IGame {
     }
 
     protected *cardPrimary_(card: Card) {
-        // if the player clicks on the top card of the stock, move it to the waste:
+        // if the player clicks on the top card of the stock, draw/deal:
         if (this.stock.peek() === card && this.canDrawFromStock_()) {
-            yield* this.doDrawFromStock_();
+            if (this.options.blockadeMode) {
+                yield* this.doDealBlockade_();
+            } else {
+                yield* this.doDrawFromStock_();
+            }
             yield* this.doAutoMoves_();
             return;
+        }
+
+        // Auto-reveal face down cards if clicked (in case they are not auto-revealed):
+        if (this.tableaux.indexOf(card.pile) >= 0) {
+            if (card.pile.peek() === card && !card.faceUp) {
+                card.faceUp = true;
+                yield DelayHint.OneByOne;
+                yield* this.doAutoMoves_();
+                return;
+            }
         }
     }
 
@@ -145,12 +186,13 @@ export class Game extends GameBase implements IGame {
     }
 
     protected *pilePrimary_(pile: Pile) {
-        // if the player clicks the stock and it has been depleted, move the waste back to the stock:
+        // if the player clicks the stock pile and it has been depleted, move the waste back:
         if (
             pile === this.stock &&
             this.stock.length === 0 &&
             this.waste.length > 0 &&
-            this.restocks_ < this.options.restocksAllowed
+            this.restocks_ < this.options.restocksAllowed &&
+            !this.options.blockadeMode
         ) {
             this.restocks_++;
             for (let i = this.waste.length; i-- > 0; ) {
@@ -166,11 +208,29 @@ export class Game extends GameBase implements IGame {
             yield* this.doAutoMoves_();
             return;
         }
+
+        // Allow dealing Blockade style when clicking empty stock pile frame:
+        if (pile === this.stock && this.stock.length > 0 && this.options.blockadeMode) {
+            yield* this.doDealBlockade_();
+            yield* this.doAutoMoves_();
+            return;
+        }
     }
 
     protected *pileSecondary_(pile: Pile) {}
 
     protected canDrag_(card: Card): { canDrag: boolean; extraCards: Card[] } {
+        if (this.isFoundationDropSource_(card)) {
+            return { canDrag: true, extraCards: [] };
+        }
+
+        if (this.options.moveSequences && this.tableaux.indexOf(card.pile) >= 0 && card.faceUp) {
+            const sequence = card.pile.slice(card.pileIndex);
+            if (this.isValidSameSuitSequence_(sequence)) {
+                return { canDrag: true, extraCards: sequence.slice(1) };
+            }
+        }
+
         // Only the top card of a tableau/waste/foundation pile can be moved (single cards only)
         if (
             card.pile.peek() === card &&
@@ -180,6 +240,17 @@ export class Game extends GameBase implements IGame {
             return { canDrag: true, extraCards: [] };
         }
         return { canDrag: false, extraCards: [] };
+    }
+
+    private isValidSameSuitSequence_(cards: Card[]): boolean {
+        for (let i = 0; i < cards.length - 1; ++i) {
+            const c1 = cards[i] ?? Debug.error();
+            const c2 = cards[i + 1] ?? Debug.error();
+            if (c1.suit !== c2.suit || this.getCardValue_(c1) !== this.getCardValue_(c2) + 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     protected previewDrop_(card: Card, pile: Pile): boolean {
@@ -210,6 +281,18 @@ export class Game extends GameBase implements IGame {
         yield DelayHint.OneByOne;
     }
 
+    private *doDealBlockade_() {
+        for (let i = 0; i < this.options.columnsCount; ++i) {
+            const card = this.stock.peek();
+            if (card) {
+                this.tableaux[i].push(card);
+                card.faceUp = true;
+                yield DelayHint.Quick;
+            }
+        }
+        yield DelayHint.OneByOne;
+    }
+
     private isTableauxDrop_(card: Card, pile: Pile) {
         if (card.pile === pile) return false;
 
@@ -217,12 +300,21 @@ export class Game extends GameBase implements IGame {
             const topCard = pile.peek();
 
             if (topCard) {
-                // Tableaus build down in the SAME suit
-                if (
-                    this.getCardValue_(topCard) === this.getCardValue_(card) + 1 &&
-                    topCard.suit === card.suit
-                ) {
-                    return true;
+                if (this.options.buildAlternatingColor) {
+                    if (
+                        this.getCardValue_(topCard) === this.getCardValue_(card) + 1 &&
+                        topCard.colour !== card.colour
+                    ) {
+                        return true;
+                    }
+                } else {
+                    // Tableaus build down in the SAME suit
+                    if (
+                        this.getCardValue_(topCard) === this.getCardValue_(card) + 1 &&
+                        topCard.suit === card.suit
+                    ) {
+                        return true;
+                    }
                 }
             } else {
                 // Empty spaces in the tableau can be filled by any card
@@ -234,12 +326,17 @@ export class Game extends GameBase implements IGame {
     }
 
     private *doTableauxDrop_(card: Card, pile: Pile) {
-        pile.push(card);
+        const sourcePile = card.pile;
+        const movingCards = card.pile.slice(card.pileIndex);
+        for (const movingCard of movingCards) {
+            pile.push(movingCard);
+        }
         yield DelayHint.OneByOne;
     }
 
     private isFoundationDrop_(card: Card, pile: Pile) {
         if (card.pile === pile) return false;
+        if (!this.isFoundationDropSource_(card)) return false;
 
         if (this.foundations.indexOf(pile) >= 0) {
             const topCard = pile.peek();
@@ -260,6 +357,11 @@ export class Game extends GameBase implements IGame {
         }
 
         return false;
+    }
+
+    private isFoundationDropSource_(card: Card) {
+        // Must be a single top card
+        return card.pile.peek() === card && card.faceUp && this.dragSingleSources_.indexOf(card.pile) >= 0;
     }
 
     private *doFoundationDrop_(card: Card, pile: Pile) {
@@ -337,7 +439,7 @@ export class Game extends GameBase implements IGame {
                 }
             }
 
-            if (this.options.autoPlayStock) {
+            if (this.options.autoPlayStock && !this.options.blockadeMode) {
                 if (this.waste.length === 0 && this.canDrawFromStock_()) {
                     yield* this.doDrawFromStock_();
                     continue mainLoop;
