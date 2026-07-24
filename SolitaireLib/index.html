@@ -14,7 +14,10 @@
 
 <body>
   <header id="siteHeader">
-    <div class="siteLogo">SolitaireLib</div>
+    <div style="display: flex; align-items: center;">
+      <div class="siteLogo">SolitaireLib</div>
+      <span id="activeGameTitle" style="margin-left: 20px; font-weight: bold; font-size: 2.2vh; color: #ffcc00; display: none;"></span>
+    </div>
     <div class="navLinks">
       <a href="#" id="homeLink">Home</a>
       <a href="#" id="backToGamesLink" style="display: none;">&larr; Back to all games</a>
@@ -27,13 +30,18 @@
     <div id="gameGrid"></div>
   </div>
 
-  <div id="gamePage" style="display: none;">
-    <div id="tableHolder">
+  <div id="gamePage" style="display: none; overflow-y: auto; height: 100%;">
+    <div id="gameArea" style="position: relative; height: 90vh;">
+      <div id="tableHolder" style="position: absolute; left: 0; right: 0; top: 0; bottom: 5vh;"></div>
+      <div id="buttons" style="position: absolute; left: 0; right: 0; bottom: 0; height: 5vh;">
+        <button id="newGameButton">New Game</button>
+        <button id="undoButton">Undo</button>
+        <button id="redoButton">Redo</button>
+      </div>
     </div>
-    <div id="buttons">
-      <button id="newGameButton">New Game</button>
-      <button id="undoButton">Undo</button>
-      <button id="redoButton">Redo</button>
+    <div id="howToPlaySection" style="padding: 30px; color: white; background-color: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.2);">
+      <h2 id="howToPlayTitle" style="color: #ffcc00; margin-top: 0; font-size: 2.5vh;">How to Play</h2>
+      <div id="howToPlayContent" style="font-size: 1.8vh; line-height: 1.6; max-width: 800px; margin: 0 auto; text-align: left;"></div>
     </div>
   </div>
 

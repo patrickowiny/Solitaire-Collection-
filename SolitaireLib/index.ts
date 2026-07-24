@@ -55,6 +55,8 @@ import Colorado from "~Games/Colorado/GameInfo";
 import AmericanToad from "~Games/AmericanToad/GameInfo";
 import KingAlbert from "~Games/KingAlbert/GameInfo";
 import CrazyQuilt from "~Games/CrazyQuilt/GameInfo";
+import { variants } from "./Variants";
+import { getHowToPlay } from "./howToPlay";
 
 const gameInfos = new Map<string, IGameInfo>();
 gameInfos.set(LaBelleLucie.gameId, LaBelleLucie);
@@ -112,6 +114,10 @@ gameInfos.set(AmericanToad.gameId, AmericanToad);
 gameInfos.set(KingAlbert.gameId, KingAlbert);
 gameInfos.set(CrazyQuilt.gameId, CrazyQuilt);
 
+variants.forEach((v) => {
+    gameInfos.set(v.gameId, v);
+});
+
 window.addEventListener("load", () => {
     const tableHolder = document.getElementById("tableHolder") ?? document.body;
     const homePage = document.getElementById("homePage")!;
@@ -147,6 +153,10 @@ window.addEventListener("load", () => {
             gamePage.style.display = "none";
             backToGamesLink.style.display = "none";
             document.title = "SolitaireLib";
+            const activeGameTitle = document.getElementById("activeGameTitle");
+            if (activeGameTitle) {
+                activeGameTitle.style.display = "none";
+            }
             return;
         }
 
@@ -173,6 +183,10 @@ window.addEventListener("load", () => {
             gamePage.style.display = "none";
             backToGamesLink.style.display = "none";
             document.title = "SolitaireLib";
+            const activeGameTitle = document.getElementById("activeGameTitle");
+            if (activeGameTitle) {
+                activeGameTitle.style.display = "none";
+            }
             return;
         }
 
@@ -180,6 +194,17 @@ window.addEventListener("load", () => {
         gamePage.style.display = "block";
         backToGamesLink.style.display = "inline";
         document.title = `${gameInfo.gameName} — SolitaireLib`;
+
+        const activeGameTitle = document.getElementById("activeGameTitle");
+        if (activeGameTitle) {
+            activeGameTitle.textContent = gameInfo.gameName;
+            activeGameTitle.style.display = "inline";
+        }
+
+        const howToPlayContent = document.getElementById("howToPlayContent");
+        if (howToPlayContent) {
+            howToPlayContent.innerHTML = getHowToPlay(gameInfo.gameId);
+        }
 
         currentGame = gameInfo.gamePresenterFactory.createGame(tableHolder, params);
         currentGame.start();
