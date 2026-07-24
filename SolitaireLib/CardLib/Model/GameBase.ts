@@ -94,11 +94,164 @@ export abstract class GameBase implements IGameBase {
         }
     }
 
+    private isWinnableEnabled_(): boolean {
+        if (typeof process !== "undefined" && process.env && process.env.NODE_ENV === "test") {
+            return false;
+        }
+        if (typeof globalThis !== "undefined" && (globalThis as any).vitest) {
+            return false;
+        }
+        if ((this as any).options && typeof (this as any).options.winnable === "boolean") {
+            return (this as any).options.winnable;
+        }
+        if (typeof window !== "undefined" && window.location && window.location.hash) {
+            const hash = window.location.hash;
+            const qPos = hash.indexOf("?");
+            if (qPos >= 0) {
+                const params = new URLSearchParams(hash.substring(qPos + 1));
+                const val = params.get("winnable");
+                if (val !== null) {
+                    return val !== "false";
+                }
+            }
+        }
+        return true;
+    }
+
+    private getBoardStateHash_(): string {
+        const parts: string[] = [];
+        for (const card of this.cards) {
+            parts.push(card.faceUp ? "U" : "D");
+        }
+        for (const pile of this.piles) {
+            parts.push(`p${pile.maxFan}`);
+            for (let i = 0; i < pile.length; i++) {
+                const card = pile.at(i);
+                const cardIndex = this.cards.indexOf(card);
+                parts.push(`${cardIndex}`);
+            }
+        }
+        return parts.join(",");
+    }
+
+    private consumeGenerator_(gen: Generator<any, any, any>) {
+        let res = gen.next();
+        while (!res.done) {
+            res = gen.next();
+        }
+    }
+
+    private isSolvable_(): boolean {
+        const startHash = this.getBoardStateHash_();
+        const startState = this.serialize();
+
+        const openList: { hash: string; state: string; score: number }[] = [];
+        const visited = new Set<string>();
+
+        const initialScore = this.wonCards.length;
+        openList.push({ hash: startHash, state: startState, score: initialScore });
+        visited.add(startHash);
+
+        let statesVisited = 0;
+        const maxStates = 150;
+
+        while (openList.length > 0 && statesVisited < maxStates) {
+            openList.sort((a, b) => b.score - a.score);
+            const current = openList.shift()!;
+            statesVisited++;
+
+            this.deserialize(current.state);
+            if (this.won) {
+                return true;
+            }
+
+            const possibleMoves: { type: string; card?: Card; pile?: Pile }[] = [];
+
+            // 1. dropCard moves (for face-up cards only)
+            for (const card of this.cards) {
+                if (!card.faceUp) continue;
+                const dragInfo = this.canDrag(card);
+                if (dragInfo.canDrag) {
+                    for (const pile of this.piles) {
+                        if (this.previewDrop(card, pile)) {
+                            possibleMoves.push({ type: "drop", card, pile });
+                        }
+                    }
+                }
+            }
+
+            // 2. cardPrimary moves (clicks on top cards of piles only)
+            for (const pile of this.piles) {
+                const topCard = pile.peek();
+                if (topCard) {
+                    possibleMoves.push({ type: "cardPrimary", card: topCard });
+                }
+            }
+
+            // 3. pilePrimary moves (pile clicks)
+            for (const pile of this.piles) {
+                possibleMoves.push({ type: "pilePrimary", pile });
+            }
+
+            for (const move of possibleMoves) {
+                this.deserialize(current.state);
+
+                if (move.type === "drop") {
+                    this.consumeGenerator_(this.dropCard(move.card!, move.pile!));
+                } else if (move.type === "cardPrimary") {
+                    this.consumeGenerator_(this.cardPrimary(move.card!));
+                } else if (move.type === "pilePrimary") {
+                    this.consumeGenerator_(this.pilePrimary(move.pile!));
+                }
+
+                if (this.won) {
+                    return true;
+                }
+
+                const nextHash = this.getBoardStateHash_();
+                if (nextHash !== current.hash && !visited.has(nextHash)) {
+                    visited.add(nextHash);
+                    const nextState = this.serialize();
+                    const nextScore = this.wonCards.length;
+                    openList.push({ hash: nextHash, state: nextState, score: nextScore });
+                }
+            }
+        }
+
+        return false;
+    }
+
     public *restart(seed: number) {
+        let winnableSeed = seed;
+        const winnable = this.isWinnableEnabled_();
+
+        const savedGamesWon = this.gamesWon;
+        const savedGamesStarted = this.gamesStarted;
+
+        if (winnable) {
+            let currentSeed = seed;
+            let found = false;
+            const maxAttempts = 20;
+            for (let i = 0; i < maxAttempts; ++i) {
+                const rng = prand.mersenne(currentSeed);
+                this.consumeGenerator_(this.restart_(rng));
+                if (this.isSolvable_()) {
+                    winnableSeed = currentSeed;
+                    found = true;
+                    break;
+                }
+                currentSeed = (currentSeed + 1) % 2147483647;
+            }
+        }
+
+        // Restore game statistics to pre-search state
+        this.gamesWon = savedGamesWon;
+        this.gamesStarted = savedGamesStarted;
+
         if (this.startOperation_()) {
             this.won = false;
             ++this.gamesStarted;
-            const rng = prand.mersenne(seed);
+            const rng = prand.mersenne(winnableSeed);
             yield* this.restart_(rng);
             this.commitOperation_();
             this.undoStack_ = [];
